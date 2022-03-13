@@ -37,7 +37,7 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
                 f" and returns {_describe(thing.args[1])}"
             )
     elif name == "optional":
-        return f"{'a ' if a else ''}optional {_describe(thing.args[0], plural=plural)}"
+        return f"{'a ' if a else ''}optional {_describe(thing.args[0], a=False, plural=plural)}"
     elif name in {"generator", "coroutine"}:
         if plural:
             return (
@@ -77,7 +77,7 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
                 f"{'a ' if a else ''}{name} that maps {_describe(thing.args[0], a=False, plural=True)}"
                 f" onto {_describe(thing.args[1])}"
             )
-    elif name in {"list", "set", "tuple", "namedtuple", "frozenset", "sequence"}:
+    elif name in {"list", "set", "tuple", "namedtuple", "frozenset", "sequence", "iterable"}:
         if plural:
             return f"{name}s of {_describe(thing.args[0], a=False, plural=True)}"
         else:
@@ -109,7 +109,7 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
             return "a object of any type" if a else "object of any type"
     elif name == "union":
         if len(thing.args) == 2 and any(i.name == "None" for i in thing.args):
-            return f"optional {_describe(thing.args[0], plural=plural)}"
+            return f"optional {_describe(thing.args[0], a=False, plural=False)}"
         return " or ".join(_describe(i) for i in thing.args)
     elif name == "final":
         return f"{'a ' if a else ''}final {_describe(thing.args[0], plural=plural)}"
@@ -147,7 +147,7 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
             return f"a object that supports {supports_what}" if a else f"objects that support {supports_what}"
     else:
         return (
-            ("a " if (a and not plural) else "")
+            (("a " if a else "") if not plural else "")
             + (pluralize(thing.name) if plural else thing.name)
             + (" " + _describe(thing.args[0], a=False) if len(thing.args) > 0 else "")
         )
