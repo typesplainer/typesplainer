@@ -1,7 +1,11 @@
-# typesplainer
+<div align="center">
+<h1>typesplainer</h1>
+<img src="https://i.imgur.com/5IFkzIf.png" width="128px">
  A Python type explainer!
 
 Available [as a cli](https://pypi.org/project/typesplainer), [as a website](https://typesplainer.herokuapp.com), [as a vscode extension (WIP)](#)
+
+</div>
 
 ## Usage
 
