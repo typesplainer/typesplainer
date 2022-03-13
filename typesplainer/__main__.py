@@ -62,6 +62,7 @@ if __name__ == "__main__":
     parser.add_argument("file_or_directory")
     parser.add_argument("-j", "--json", action="store_true")
     parser.add_argument("-d", "--debug", action="store_true")
+    parser.add_argument("-e", "--encoding", default="utf-8")
     args = parser.parse_args()
 
     if args.debug:
@@ -79,7 +80,7 @@ if __name__ == "__main__":
         files = [path]
 
     for file in files:
-        with open(file) as f:
+        with open(file, encoding=args.encoding) as f:
             if args.json:
                 console.print_json(data=get_json(parse_code(f.read())))
             else:
