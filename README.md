@@ -5,6 +5,8 @@
 
 Available [as a cli](https://pypi.org/project/typesplainer), [as a website](https://typesplainer.herokuapp.com), [as a vscode extension (WIP)](#)
 
+[![PyPI](https://img.shields.io/pypi/v/typesplainer?label=cli)](https://pypi.org/project/typesplainer) [![Website](https://img.shields.io/website?url=https%3A%2F%2Ftypesplainer.herokuapp.com)](https://typesplainer.herokuapp.com) [![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/WasiMaster.typesplainer?label=vscode)](https://marketplace.visualstudio.com/items?itemName=WasiMaster.typesplainer)
+
 </div>
 
 ## Usage
