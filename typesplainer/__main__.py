@@ -1,11 +1,12 @@
 import os, sys
 
 import rich
+from mypy.version import __version__ as mypy_version
 from rich.highlighter import RegexHighlighter
 from rich.text import Text
 
+from .__init__ import __version__
 from .core import describe, parse_code, get_json
-
 
 class TypeHighlighter(RegexHighlighter):
     base_style = "type."
@@ -58,11 +59,18 @@ if __name__ == "__main__":
         }
     )
     console = Console(highlight=False, theme=theme, emoji=False)
+    v_info =  sys.version_info
     parser = argparse.ArgumentParser()
     parser.add_argument("file_or_directory")
     parser.add_argument("-j", "--json", action="store_true")
     parser.add_argument("-d", "--debug", action="store_true")
     parser.add_argument("-e", "--encoding", default="utf-8")
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version=f"typesplainer {__version__} running on mypy {mypy_version} on python {v_info.major}.{v_info.minor}.{v_info.micro}"
+    )
     args = parser.parse_args()
 
     if args.debug:

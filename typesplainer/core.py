@@ -109,7 +109,7 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
             return "a object of any type" if a else "object of any type"
     elif name == "union":
         if len(thing.args) == 2 and any(i.name == "None" for i in thing.args):
-            return f"optional {_describe(thing.args[0], a=False, plural=False)}"
+            return f"optional {_describe(thing.args[0], a=False, plural=plural)}"
         return " or ".join(_describe(i) for i in thing.args)
     elif name == "final":
         return f"{'a ' if a else ''}final {_describe(thing.args[0], plural=plural)}"
@@ -186,7 +186,7 @@ def get_json(defs):
             continue
         typehint_text = str(def_).replace("?", "")
         line = def_.line
-        end_line = def_.end_line
+        end_line = def_.end_line or line
         column = def_.column + 1
         end_column = column + len(typehint_text)
         description = describe(def_)
