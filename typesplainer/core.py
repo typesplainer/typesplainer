@@ -1,10 +1,11 @@
+import re
 from typing import Any, Generator
 
 
 from mypy.nodes import AssignmentStmt, FuncDef, ClassDef, Decorator
 from mypy.options import Options
 from mypy.parse import parse
-from mypy.types import Type, AnyType, UnionType
+from mypy.types import Type, AnyType, UnionType, TypeList
 
 
 def pluralize(word: str) -> str:
@@ -23,6 +24,8 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
             return "objects of any type"
         else:
             return "a object of any type" if a else "object of any type"
+    if isinstance(thing, TypeList):
+        return " and ".join(_describe(i) for i in thing.items)
 
     try:
         name = thing.name.lower()
@@ -221,10 +224,14 @@ def parse_code(code: str) -> Generator[Type, None, None]:
 
 def get_json(defs):
     data = []
+    typelist_regex = re.compile(r"<TypeList ([^>]+)>")
+    format_typelist = lambda x: "[" + x.group(1).replace(" ", ", ") + "]"
     for def_ in defs:
         if not def_:
             continue
         typehint_text = str(def_).replace("?", "")
+        if "<TypeList" in typehint_text:
+            typehint_text = re.sub(typelist_regex, format_typelist,typehint_text)
         line = def_.line
         end_line = def_.end_line or line
         column = def_.column + 1

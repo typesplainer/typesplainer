@@ -1,4 +1,5 @@
 import os, sys
+import re
 
 import rich
 from mypy.version import __version__ as mypy_version
@@ -31,11 +32,14 @@ def format_location(def_, typehint_text, file_name):
 
 def print_description(source_code: str, file_name: str, highlighter=TypeHighlighter()):
     defs = parse_code(source_code)
+    typelist_regex = re.compile(r"<TypeList ([^>]+)>")
+    format_typelist = lambda x: "[" + x.group(1).replace(" ", ", ") + "]"
     for def_ in defs:
         if def_ is None:
             continue
         typehint_text = str(def_).replace("?", "")
-
+        if "<TypeList" in typehint_text:
+            typehint_text = re.sub(typelist_regex, format_typelist,typehint_text)
         text = Text(typehint_text)
         highlighter.highlight(text)
         console.print(text, format_location(def_, typehint_text, file_name), ":", describe(def_))
