@@ -127,9 +127,15 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
             return f"any kind of string"
     elif name == "awaitable":
         if plural:
-            return f"awaitables that return {_describe(thing.args[0],)}"
+            if thing.args:
+                return f"awaitables that return {_describe(thing.args[0],)}"
+            else:
+                return f"awaitables"
         else:
-            return f"{'a ' if a else ''}awaitable that returns {_describe(thing.args[0])}"
+            if thing.args:
+                return f"{'a ' if a else ''}awaitable that returns {_describe(thing.args[0])}"
+            else:
+                return f"{'a ' if a else ''}awaitable"
     elif name == "literal":
         return (
             f"only expressions that have literally the {'values' if len(thing.args) > 1 else 'value'}"
