@@ -28,6 +28,10 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
         name = thing.name.lower()
     except AttributeError:
         return thing.__class__.__name__
+    if name.startswith("typing."):
+        name = name[7:]
+    elif name.startswith("collections."):
+        name = name[12:]
     if name == "callable":
         if plural:
             return f"callables that accept {_describe(thing.args[0])}" f" and return {_describe(thing.args[1])}"
@@ -128,6 +132,36 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
             f"only expressions that have literally the {'values' if len(thing.args) > 1 else 'value'}"
             f" {' or '.join(map(str, thing.args))}"
         )
+    elif name in {"io", "bytesio", "textio"}:
+        if plural:
+            return (f"I/O streams of {name.replace('io','')}") if name != "io" else "I/O streams"
+        else:
+            return (f"{'an' if a else ''} I/O stream of {name.replace('io','')}") if name != "io" else f"{'an' if a else ''} I/O stream"
+    elif name in {"match", "pattern"}:
+        if plural:
+            return f"Regex pattern objects" if name == "pattern" else "Regex match objects"
+        else:
+            return f"{'a' if a else ''} regex pattern object" if name == "pattern" else f"{'a' if a else ''} regex match object"
+    elif name in {"reversible", "hashable", "iterator"}:
+        what_method = {
+            "iterator": "__iter__() and a __next__()",
+            "hashable": "__hash__()",
+            "reversible": "__reversed__()"
+        }[name]
+        if plural:
+            return f"{'iterable' if name != 'hashable' else ''} objects with a {what_method} method"
+        else:
+            return f"{'a' if a else ''} {'iterable ' if name != 'hashable' else ''}object with a {what_method} method"
+    elif name == "asynciterator":
+        if plural:
+            return f"asynchronous iterable objects with a __aiter__() and a __anext__() method"
+        else:
+            return f"{'a' if a else ''} object with a __aiter__() and a __anext__() method"
+    elif name in {"contextmanager", "asyncontextmanager"}:
+        if plural:
+            return f"{'asynchronous ' if name == 'asynccontextmanager' else ''}context managers"
+        else:
+            return f"{'a' if a else ''} {'asynchronous ' if name == 'asynccontextmanager' else ''} context manager"
     elif name == "annotated":
         if plural:
             return (
@@ -145,6 +179,12 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
             return f"objects that support {supports_what}"
         else:
             return f"a object that supports {supports_what}" if a else f"objects that support {supports_what}"
+    elif name.startswith("mutable"):
+        mutable_what = name[7:]
+        if plural:
+            return f"mutable {mutable_what} objects"
+        else:
+            return f"{'a'  if a else ''} mutable {mutable_what} object"
     else:
         return (
             (("a " if a else "") if not plural else "")
@@ -154,7 +194,7 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
 
 
 def describe(thing: Type) -> str:
-    return _describe(thing).capitalize()
+    return _describe(thing).capitalize() + "."
 
 
 def _parse_def(def_):
