@@ -33,7 +33,7 @@ def format_location(def_, typehint_text, file_name):
 def print_description(source_code: str, file_name: str, highlighter=TypeHighlighter()):
     defs = parse_code(source_code)
     typelist_regex = re.compile(r"<TypeList ([^>]+)>")
-    format_typelist = lambda x: "[" + x.group(1).replace(" ", ", ") + "]"
+    format_typelist = lambda x: "[" + x.group(1) + "]"
     for def_ in defs:
         if def_ is None:
             continue

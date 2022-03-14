@@ -225,7 +225,7 @@ def parse_code(code: str) -> Generator[Type, None, None]:
 def get_json(defs):
     data = []
     typelist_regex = re.compile(r"<TypeList ([^>]+)>")
-    format_typelist = lambda x: "[" + x.group(1).replace(" ", ", ") + "]"
+    format_typelist = lambda x: "[" + x.group(1)+ "]"
     for def_ in defs:
         if not def_:
             continue
