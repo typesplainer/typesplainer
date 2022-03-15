@@ -26,3 +26,8 @@ python -m typesplainer my_directory
 - Colorized output. Output with colors is going to make sure your eyes feel refreshed.
 - Intelligent explanation. Takes pluralization, pronoun usage, article usage, correct grammar into account.
 - Best in class parser. It does not rely on some substandard AI based description generator, instead it parses the file using [mypy](https://github.com/python/mypy)'s custom parser and shows the most accurate description
+
+## Contribute
+
+Contributions are appreciated. See the TODO.md file or open issues
+
