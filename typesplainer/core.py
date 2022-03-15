@@ -2,11 +2,30 @@ import re
 from typing import Any, Generator
 
 
-from mypy.nodes import AssignmentStmt, FuncDef, ClassDef, Decorator
+from mypy.nodes import (
+    AssignmentStmt, FuncDef, ClassDef, Decorator, Expression,
+    IndexExpr, IntExpr, StrExpr, FloatExpr, BytesExpr, TupleExpr,
+    SetExpr, ListExpr, DictExpr, CastExpr
+)
 from mypy.options import Options
 from mypy.parse import parse
 from mypy.types import Type, AnyType, UnionType, TypeList
 
+SUPPORTED_TYPES = [
+    "Callable", "Optional", "Generator", "Coroutine", "AsyncGenerator",
+    "Dict", "dict", "Mapping", "OrderedDict", "DefaultDict",
+    "List", "list", "Set", "Tuple", "NamedTuple", "namedtuple",
+    "FrozenSet", "frozenset", "Sequence", "Iterable", "str",
+    "int", "bool", "none", "Any", "Union", "Final", "AnyStr",
+    "Awaitable", "Literal", "IO", "BytesIO", "TextIO", "StringIO",
+    "Match", "Pattern", "Reversible", "Hashable", "Iterator", "AsyncIterator",
+    "ContextManager", "AsyncContextManager", "Annotated", "SupportsAbs",
+    "SupportsBytes", "SupportsComplex", "SupportsFloat", "SupportsIndex", "SupportsInt",
+    "SupportsRound", "MutableMapping", "MutableSet", "MutableSequence",
+]
+
+class MockType:
+    pass
 
 def pluralize(word: str) -> str:
     if word[-1] in "sx" or word[-2:] in ["sh", "ch"]:
@@ -74,6 +93,11 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
         }
         name = proper_names[name]
 
+        if not thing.args:
+            if plural:
+                return f"{name}s of any object"
+            else:
+                return f"{'a ' if a else ''}{name} of any object"
         if plural:
             return (
                 f"{pluralize(name)} that map {_describe(thing.args[0], a=False, plural=True)}"
@@ -85,6 +109,11 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
                 f" onto {_describe(thing.args[1])}"
             )
     elif name in {"list", "set", "tuple", "namedtuple", "frozenset", "sequence", "iterable"}:
+        if not thing.args:
+            if plural:
+                return f"{name}s of any object"
+            else:
+                return f"{'a ' if a else ''}{name} of any object"
         if plural:
             return f"{name}s of {_describe(thing.args[0], a=False, plural=True)}"
         else:
@@ -141,7 +170,7 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
             f"only expressions that have literally the {'values' if len(thing.args) > 1 else 'value'}"
             f" {' or '.join(map(str, thing.args))}"
         )
-    elif name in {"io", "bytesio", "textio"}:
+    elif name in {"io", "bytesio", "textio", "stringio"}:
         if plural:
             return (f"I/O streams of {name.replace('io','')}") if name != "io" else "I/O streams"
         else:
@@ -215,6 +244,9 @@ def _parse_def(def_):
                 yield argument.type_annotation
         if def_.type and def_.type.ret_type:
             yield def_.type.ret_type
+        if any(isinstance(i, (FuncDef, ClassDef)) for i in def_.body.body):
+            for body_function_or_class in def_.body.body:
+                yield from _parse_def(body_function_or_class)
     elif isinstance(def_, ClassDef):
         for thing in def_.defs.body:
             yield from _parse_def(thing)
@@ -234,6 +266,8 @@ def get_json(defs):
     format_typelist = lambda x: "[" + x.group(1)+ "]"
     for def_ in defs:
         if not def_:
+            continue
+        if def_.line == -1:
             continue
         typehint_text = str(def_).replace("?", "")
         if "<TypeList" in typehint_text:

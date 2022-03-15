@@ -37,6 +37,8 @@ def print_description(source_code: str, file_name: str, highlighter=TypeHighligh
     for def_ in defs:
         if def_ is None:
             continue
+        if def_.line == -1:
+            continue
         typehint_text = str(def_).replace("?", "")
         if "<TypeList" in typehint_text:
             typehint_text = re.sub(typelist_regex, format_typelist,typehint_text)
