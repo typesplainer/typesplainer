@@ -2,6 +2,8 @@ import re
 from typing import Any, Generator
 
 
+from mypy.errors import Errors
+from mypy.exprtotype import TypeTranslationError, expr_to_unanalyzed_type
 from mypy.nodes import (
     AssignmentStmt, FuncDef, ClassDef, Decorator, Expression,
     IndexExpr, IntExpr, StrExpr, FloatExpr, BytesExpr, TupleExpr,
@@ -9,7 +11,7 @@ from mypy.nodes import (
 )
 from mypy.options import Options
 from mypy.parse import parse
-from mypy.types import Type, AnyType, UnionType, TypeList
+from mypy.types import Type, AnyType, UnionType, TypeList, RawExpressionType, UnboundType
 
 SUPPORTED_TYPES = [
     "Callable", "Optional", "Generator", "Coroutine", "AsyncGenerator",
@@ -23,6 +25,7 @@ SUPPORTED_TYPES = [
     "SupportsBytes", "SupportsComplex", "SupportsFloat", "SupportsIndex", "SupportsInt",
     "SupportsRound", "MutableMapping", "MutableSet", "MutableSequence",
 ]
+SUPPORTED_TYPES_LOWER = set(typ.lower() for typ in SUPPORTED_TYPES)
 
 class MockType:
     pass
@@ -42,7 +45,7 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
         if plural:
             return "objects of any type"
         else:
-            return "a object of any type" if a else "object of any type"
+            return "an object of any type" if a else "object of any type"
     if isinstance(thing, TypeList):
         return " and ".join(_describe(i) for i in thing.items)
 
@@ -142,7 +145,7 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
         if plural:
             return "objects of any type"
         else:
-            return "a object of any type" if a else "object of any type"
+            return "an object of any type" if a else "object of any type"
     elif name == "union":
         if len(thing.args) == 2 and any(i.name == "None" for i in thing.args):
             return f"optional {_describe(thing.args[0], a=False, plural=plural)}"
@@ -195,7 +198,7 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
             return f"asynchronous iterable objects with a __aiter__() and a __anext__() method"
         else:
             return f"{'a' if a else ''} object with a __aiter__() and a __anext__() method"
-    elif name in {"contextmanager", "asyncontextmanager"}:
+    elif name in {"contextmanager", "asynccontextmanager"}:
         if plural:
             return f"{'asynchronous ' if name == 'asynccontextmanager' else ''}context managers"
         else:
@@ -216,7 +219,7 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
         if plural:
             return f"objects that support {supports_what}"
         else:
-            return f"a object that supports {supports_what}" if a else f"objects that support {supports_what}"
+            return f"an object that supports {supports_what}" if a else f"objects that support {supports_what}"
     elif name.startswith("mutable"):
         mutable_what = name[7:]
         if plural:
@@ -237,7 +240,17 @@ def describe(thing: Type) -> str:
 
 def _parse_def(def_):
     if isinstance(def_, AssignmentStmt):
-        yield def_.type
+        if def_.type:
+            yield def_.type
+            return
+        if len(def_.lvalues) != 1:
+            return
+        try:
+            inferred_type = expr_to_unanalyzed_type(def_.rvalue, Options())
+        except TypeTranslationError:
+            return
+        if _looks_like_type_alias(inferred_type):
+            yield inferred_type
     elif isinstance(def_, FuncDef):
         for argument in def_.arguments:
             if argument.type_annotation:
@@ -255,9 +268,33 @@ def _parse_def(def_):
 
 
 def parse_code(code: str) -> Generator[Type, None, None]:
-    defs = parse(code, "<code>", module=None, errors=None, options=Options()).defs
+    options = Options()
+    errors = Errors(options)
+    try:
+        defs = parse(code, "<code>", module=None, errors=errors, options=options, file_exists=False).defs
+    except TypeError:
+        defs = parse(code, "<code>", module=None, errors=None, options=options).defs
     for def_ in defs:
         yield from _parse_def(def_)
+
+
+def _looks_like_type_alias(typ: Type, *, in_literal: bool = False) -> bool:
+    if in_literal:
+        return True
+    if isinstance(typ, RawExpressionType):
+        return in_literal
+    if isinstance(typ, TypeList):
+        return all(_looks_like_type_alias(item) for item in typ.items)
+    if isinstance(typ, UnboundType):
+        base_name = typ.name.split(".")[-1]
+        if not (base_name.lower() in SUPPORTED_TYPES_LOWER or base_name[:1].isupper()):
+            return False
+        if base_name.lower() == "annotated":
+            if not typ.args:
+                return False
+            return _looks_like_type_alias(typ.args[0]) and all(_looks_like_type_alias(arg, in_literal=True) for arg in typ.args[1:])
+        return all(_looks_like_type_alias(arg, in_literal=base_name.lower() == "literal") for arg in typ.args)
+    return True
 
 
 def get_json(defs):
