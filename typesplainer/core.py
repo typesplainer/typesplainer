@@ -1,5 +1,5 @@
 import re
-from typing import Any, Generator
+from typing import Any, Generator, Iterable
 
 
 from mypy.errors import Errors
@@ -18,7 +18,7 @@ SUPPORTED_TYPES = [
     "Dict", "dict", "Mapping", "OrderedDict", "DefaultDict",
     "List", "list", "Set", "Tuple", "NamedTuple", "namedtuple",
     "FrozenSet", "frozenset", "Sequence", "Iterable", "str",
-    "int", "bool", "none", "Any", "Union", "Final", "AnyStr",
+    "int", "float", "bytes", "complex", "object", "bool", "none", "Any", "Union", "Final", "AnyStr",
     "Awaitable", "Literal", "IO", "BytesIO", "TextIO", "StringIO",
     "Match", "Pattern", "Reversible", "Hashable", "Iterator", "AsyncIterator",
     "ContextManager", "AsyncContextManager", "Annotated", "SupportsAbs",
@@ -26,6 +26,7 @@ SUPPORTED_TYPES = [
     "SupportsRound", "MutableMapping", "MutableSet", "MutableSequence",
 ]
 SUPPORTED_TYPES_LOWER = set(typ.lower() for typ in SUPPORTED_TYPES)
+TYPELIST_REGEX = re.compile(r"<TypeList ([^>]+)>")
 
 class MockType:
     pass
@@ -39,7 +40,8 @@ def pluralize(word: str) -> str:
 def _describe(thing: Type, a: bool = True, plural=False) -> str:
     if isinstance(thing, UnionType):
         if len(thing.items) == 2 and any(i.name == "None" for i in thing.items):
-            return f"optional {_describe(thing.items[0])}"
+            non_none_item = next((item for item in thing.items if item.name != "None"), thing.items[0])
+            return f"optional {_describe(non_none_item)}"
         return " or ".join(_describe(i) for i in thing.items)
     if isinstance(thing, AnyType):
         if plural:
@@ -131,6 +133,26 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
             return f"integers"
         else:
             return f"{'a ' if a else ''}integer"
+    elif name == "float":
+        if plural:
+            return "floats"
+        else:
+            return f"{'a ' if a else ''}float"
+    elif name == "bytes":
+        if plural:
+            return "byte strings"
+        else:
+            return f"{'a ' if a else ''}byte string"
+    elif name == "complex":
+        if plural:
+            return "complex numbers"
+        else:
+            return f"{'a ' if a else ''}complex number"
+    elif name == "object":
+        if plural:
+            return "objects"
+        else:
+            return f"{'an ' if a else ''}object"
     elif name == "bool":
         if plural:
             return f"booleans"
@@ -148,7 +170,8 @@ def _describe(thing: Type, a: bool = True, plural=False) -> str:
             return "an object of any type" if a else "object of any type"
     elif name == "union":
         if len(thing.args) == 2 and any(i.name == "None" for i in thing.args):
-            return f"optional {_describe(thing.args[0], a=False, plural=plural)}"
+            non_none_arg = next((arg for arg in thing.args if arg.name != "None"), thing.args[0])
+            return f"optional {_describe(non_none_arg, a=False, plural=plural)}"
         return " or ".join(_describe(i) for i in thing.args)
     elif name == "final":
         return f"{'a ' if a else ''}final {_describe(thing.args[0], plural=plural)}"
@@ -278,6 +301,13 @@ def parse_code(code: str) -> Generator[Type, None, None]:
         yield from _parse_def(def_)
 
 
+def normalize_typehint_text(def_: Type) -> str:
+    typehint_text = str(def_).replace("?", "")
+    if "<TypeList" in typehint_text:
+        typehint_text = re.sub(TYPELIST_REGEX, lambda match: "[" + match.group(1) + "]", typehint_text)
+    return typehint_text
+
+
 def _looks_like_type_alias(typ: Type, *, in_literal: bool = False) -> bool:
     if in_literal:
         return True
@@ -297,18 +327,14 @@ def _looks_like_type_alias(typ: Type, *, in_literal: bool = False) -> bool:
     return True
 
 
-def get_json(defs):
+def get_json(defs: Iterable[Type]) -> list[dict[str, Any]]:
     data = []
-    typelist_regex = re.compile(r"<TypeList ([^>]+)>")
-    format_typelist = lambda x: "[" + x.group(1)+ "]"
     for def_ in defs:
         if not def_:
             continue
         if def_.line == -1:
             continue
-        typehint_text = str(def_).replace("?", "")
-        if "<TypeList" in typehint_text:
-            typehint_text = re.sub(typelist_regex, format_typelist,typehint_text)
+        typehint_text = normalize_typehint_text(def_)
         line = def_.line
         end_line = def_.end_line or line
         column = def_.column + 1
