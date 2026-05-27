@@ -26,6 +26,10 @@ BASE_CASES_BY_TYPE = {
     "Iterable": ("Iterable[int]", "A iterable of integers."),
     "str": ("str", "A string."),
     "int": ("int", "A integer."),
+    "float": ("float", "A float."),
+    "bytes": ("bytes", "A byte string."),
+    "complex": ("complex", "A complex number."),
+    "object": ("object", "An object."),
     "bool": ("bool", "A boolean."),
     "none": ("none", "Nothing/none."),
     "Any": ("Any", "An object of any type."),
@@ -110,6 +114,7 @@ NUANCE_CASES_BY_TYPE = {
     ],
     "Union": [
         ("Union[int, None]", "Optional integer."),
+        ("Union[None, int]", "Optional integer."),
         ("Union[int, str, bool]", "A integer or a string or a boolean."),
     ],
     "Awaitable": [
@@ -117,6 +122,9 @@ NUANCE_CASES_BY_TYPE = {
     ],
     "Literal": [
         ("Literal[1, 2]", "Only expressions that have literally the values 1 or 2."),
+    ],
+    "bytes": [
+        ("bytes", "A byte string."),
     ],
     "IO": [
         ("IO[str]", "An i/o stream."),

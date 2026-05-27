@@ -1,13 +1,10 @@
-import os, sys
-import re
-
-import rich
+import sys
 from mypy.version import __version__ as mypy_version
 from rich.highlighter import RegexHighlighter
 from rich.text import Text
 
 from .__init__ import __version__
-from .core import describe, parse_code, get_json
+from .core import describe, parse_code, get_json, normalize_typehint_text
 
 class TypeHighlighter(RegexHighlighter):
     base_style = "type."
@@ -30,18 +27,16 @@ def format_location(def_, typehint_text, file_name):
     return f"[red]({file_name}:{line}{f'-{end_line}' if end_line else ''}:{column})[/red]"
 
 
-def print_description(source_code: str, file_name: str, highlighter=TypeHighlighter()):
+def print_description(source_code: str, file_name: str, highlighter=None):
+    if highlighter is None:
+        highlighter = TypeHighlighter()
     defs = parse_code(source_code)
-    typelist_regex = re.compile(r"<TypeList ([^>]+)>")
-    format_typelist = lambda x: "[" + x.group(1) + "]"
     for def_ in defs:
         if def_ is None:
             continue
         if def_.line == -1:
             continue
-        typehint_text = str(def_).replace("?", "")
-        if "<TypeList" in typehint_text:
-            typehint_text = re.sub(typelist_regex, format_typelist,typehint_text)
+        typehint_text = normalize_typehint_text(def_)
         text = Text(typehint_text)
         highlighter.highlight(text)
         console.print(text, format_location(def_, typehint_text, file_name), ":", describe(def_))
@@ -84,9 +79,9 @@ if __name__ == "__main__":
 
         install(show_locals=True)
 
-    path = Path(sys.argv[1])
+    path = Path(args.file_or_directory)
 
-    if os.path.isdir(path):
+    if path.is_dir():
         files = []
         for python_file in path.rglob("*.py"):
             files.append(python_file)
