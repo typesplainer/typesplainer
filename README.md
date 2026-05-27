@@ -5,7 +5,7 @@
 
 Available [as a cli](https://pypi.org/project/typesplainer), [as a website](https://typesplainer.vercel.app), [as a vscode extension](https://marketplace.visualstudio.com/items?itemName=WasiMaster.typesplainer), [as a vim extension](https://github.com/typesplainer/typesplainer-vim)
 
-[![PyPI](https://img.shields.io/pypi/v/typesplainer?label=cli)](https://pypi.org/project/typesplainer) [![Website](https://img.shields.io/website?url=https%3A%2F%2Fwasimaster.xyz%2Ftypesplainer)](https://typesplainer.vercel.app) [![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/WasiMaster.typesplainer?label=vscode)](https://marketplace.visualstudio.com/items?itemName=WasiMaster.typesplainer) [![Vim](https://img.shields.io/badge/vim-master-orange)](https://github.com/typesplainer/typesplainer-vim)
+[![PyPI](https://img.shields.io/pypi/v/typesplainer?label=cli)](https://pypi.org/project/typesplainer) [![Website](https://img.shields.io/website?url=https%3A%2F%2Ftypesplainer.vercel.app)](https://typesplainer.vercel.app) [![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/WasiMaster.typesplainer?label=vscode)](https://marketplace.visualstudio.com/items?itemName=WasiMaster.typesplainer) [![Vim](https://img.shields.io/badge/vim-master-orange)](https://github.com/typesplainer/typesplainer-vim)
 
 </div>
 
